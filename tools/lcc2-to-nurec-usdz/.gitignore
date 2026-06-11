@@ -1,0 +1,8 @@
+*.ply
+*.usdz
+*.nurec
+*.sog
+*.lcc2
+*_summary.json
+__pycache__/
+*.pyc

@@ -1,0 +1,23 @@
+# Optional NuRec export backend notes.
+#
+# Do not install this file blindly with ordinary pip. 3DGRUT depends on a
+# matching PyTorch/CUDA/USD stack and should be installed from the upstream
+# repository following the README instructions.
+#
+# Verified backend used during development:
+# - threedgrut 1.1.0 from https://github.com/nv-tlabs/3dgrut
+# - torch 2.11.0+cu128
+# - torchvision 0.26.0+cu128
+# - usd-core 26.5
+# - slangc 2026.5.2
+#
+# Example:
+#   git clone https://github.com/nv-tlabs/3dgrut.git /tmp/3dgrut_src
+#   cd /tmp/3dgrut_src
+#   uv venv .venv --python 3.12
+#   UV_INDEX='pytorch=https://download.pytorch.org/whl/cu128' \
+#     uv pip install -e . --index-strategy unsafe-best-match
+#   UV_PROJECT_ENVIRONMENT=/tmp/3dgrut_src/.venv bash scripts/install_slangc.sh
+#
+# Then call this converter with:
+#   --threedgrut-python /tmp/3dgrut_src/.venv/bin/python

@@ -1,0 +1,9 @@
+# Core runtime dependencies for lcc2_to_nurec_usdz.py.
+#
+# These are intentionally small: this file covers local LCC2/SOG decoding,
+# Gaussian PLY writing, mesh PLY merging, and USDZ package inspection.
+# NVIDIA 3DGRUT, PyTorch, CUDA wheels, Slang, and usd-core are managed in a
+# separate 3DGRUT environment and selected with --threedgrut-python.
+
+numpy>=1.26,<3
+Pillow>=10.0,<13
