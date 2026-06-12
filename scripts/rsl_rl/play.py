@@ -30,6 +30,16 @@ parser.add_argument(
     help="Use the pre-trained checkpoint from Nucleus.",
 )
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
+parser.add_argument("--vx", type=float, default=None, help="Fixed x velocity command for GUI play.")
+parser.add_argument("--vy", type=float, default=None, help="Fixed y velocity command for GUI play.")
+parser.add_argument("--wz", type=float, default=None, help="Fixed yaw-rate command for GUI play.")
+parser.add_argument("--command_print_interval", type=int, default=200, help="Steps between command debug prints.")
+parser.add_argument(
+    "--no_auto_camera",
+    action="store_true",
+    default=False,
+    help="Disable automatically moving the GUI camera to env_0's robot at play startup.",
+)
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -56,12 +66,97 @@ import isaaclab_tasks  # noqa: F401
 from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
 from isaaclab.utils.assets import retrieve_file_path
 from isaaclab.utils.dict import print_dict
-from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
+try:
+    from isaaclab.utils.pretrained_checkpoint import get_published_pretrained_checkpoint
+except ModuleNotFoundError:
+    get_published_pretrained_checkpoint = None
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, export_policy_as_jit, export_policy_as_onnx
 from isaaclab_tasks.utils import get_checkpoint_path
 
 import unitree_rl_lab.tasks  # noqa: F401
 from unitree_rl_lab.utils.parser_cfg import parse_env_cfg
+from unitree_rl_lab.utils.rsl_rl_stability import load_runner_checkpoint_compat
+
+try:
+    from isaacsim.core.utils.viewports import set_camera_view
+except ModuleNotFoundError:
+    set_camera_view = None
+
+
+def clamp_command(command: torch.Tensor, env_cfg) -> torch.Tensor:
+    ranges = env_cfg.commands.base_velocity.limit_ranges
+    command[:, 0] = command[:, 0].clamp(*ranges.lin_vel_x)
+    command[:, 1] = command[:, 1].clamp(*ranges.lin_vel_y)
+    command[:, 2] = command[:, 2].clamp(*ranges.ang_vel_z)
+    return command
+
+
+def make_fixed_command(device: torch.device) -> torch.Tensor | None:
+    if args_cli.vx is None and args_cli.vy is None and args_cli.wz is None:
+        return None
+    return torch.tensor(
+        [[args_cli.vx or 0.0, args_cli.vy or 0.0, args_cli.wz or 0.0]],
+        dtype=torch.float32,
+        device=device,
+    )
+
+
+def get_fixed_command_values() -> tuple[float, float, float] | None:
+    if args_cli.vx is None and args_cli.vy is None and args_cli.wz is None:
+        return None
+    return (args_cli.vx or 0.0, args_cli.vy or 0.0, args_cli.wz or 0.0)
+
+
+def configure_fixed_command_cfg(env_cfg, command_values: tuple[float, float, float] | None) -> None:
+    if command_values is None:
+        return
+    vx, vy, wz = command_values
+    ranges = env_cfg.commands.base_velocity.limit_ranges
+    vx = min(max(vx, ranges.lin_vel_x[0]), ranges.lin_vel_x[1])
+    vy = min(max(vy, ranges.lin_vel_y[0]), ranges.lin_vel_y[1])
+    wz = min(max(wz, ranges.ang_vel_z[0]), ranges.ang_vel_z[1])
+
+    env_cfg.commands.base_velocity.ranges.lin_vel_x = (vx, vx)
+    env_cfg.commands.base_velocity.ranges.lin_vel_y = (vy, vy)
+    env_cfg.commands.base_velocity.ranges.ang_vel_z = (wz, wz)
+    env_cfg.commands.base_velocity.limit_ranges.lin_vel_x = (vx, vx)
+    env_cfg.commands.base_velocity.limit_ranges.lin_vel_y = (vy, vy)
+    env_cfg.commands.base_velocity.limit_ranges.ang_vel_z = (wz, wz)
+    env_cfg.commands.base_velocity.rel_standing_envs = 0.0
+    env_cfg.commands.base_velocity.rel_heading_envs = 0.0
+    env_cfg.commands.base_velocity.heading_command = False
+    env_cfg.commands.base_velocity.resampling_time_range = (1.0e9, 1.0e9)
+
+
+def enforce_fixed_command(env, command: torch.Tensor) -> torch.Tensor:
+    term = env.unwrapped.command_manager.get_term("base_velocity")
+    term.vel_command_b[:] = command
+    if hasattr(term, "is_standing_env"):
+        term.is_standing_env[:] = False
+    if hasattr(term, "is_heading_env"):
+        term.is_heading_env[:] = False
+    if hasattr(term, "heading_target"):
+        term.heading_target[:] = 0.0
+    term.time_left[:] = 1.0e9
+    return env.unwrapped.command_manager.get_command("base_velocity").clone()
+
+
+def get_obs(vec_env):
+    obs = vec_env.get_observations()
+    if version("rsl-rl-lib").startswith("2.3."):
+        obs, _ = obs
+    return obs
+
+
+def set_camera_to_env0_robot(env) -> None:
+    if args_cli.headless or args_cli.no_auto_camera or set_camera_view is None:
+        return
+    robot = env.unwrapped.scene["robot"]
+    root_pos = robot.data.root_pos_w[0].detach().cpu()
+    target = [float(root_pos[0]), float(root_pos[1]), float(root_pos[2] + 0.7)]
+    eye = [target[0] + 3.0, target[1] - 3.0, target[2] + 1.8]
+    set_camera_view(eye, target)
+    print(f"[INFO][play] camera eye={eye} target={target}")
 
 
 def main():
@@ -74,6 +169,10 @@ def main():
         use_fabric=not args_cli.disable_fabric,
         entry_point_key="play_env_cfg_entry_point",
     )
+    env_cfg.observations.policy.enable_corruption = False
+    if hasattr(env_cfg.observations, "critic"):
+        env_cfg.observations.critic.enable_corruption = False
+    configure_fixed_command_cfg(env_cfg, get_fixed_command_values())
     agent_cfg: RslRlOnPolicyRunnerCfg = cli_args.parse_rsl_rl_cfg(args_cli.task, args_cli)
 
     # specify directory for logging experiments
@@ -81,6 +180,10 @@ def main():
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Loading experiment from directory: {log_root_path}")
     if args_cli.use_pretrained_checkpoint:
+        if get_published_pretrained_checkpoint is None:
+            print("[INFO] This Isaac Lab version does not provide isaaclab.utils.pretrained_checkpoint.")
+            print("[INFO] Please use --checkpoint /path/to/model.pt instead, or run train.py first.")
+            return
         resume_path = get_published_pretrained_checkpoint("rsl_rl", args_cli.task)
         if not resume_path:
             print("[INFO] Unfortunately a pre-trained checkpoint is currently unavailable for this task.")
@@ -124,7 +227,7 @@ def main():
         runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     else:
         raise ValueError(f"Unsupported runner class: {agent_cfg.class_name}")
-    runner.load(resume_path)
+    load_runner_checkpoint_compat(runner, resume_path)
 
     # obtain the trained policy for inference
     policy = runner.get_inference_policy(device=env.unwrapped.device)
@@ -154,13 +257,27 @@ def main():
     dt = env.unwrapped.step_dt
 
     # reset environment
-    obs = env.get_observations()
-    if version("rsl-rl-lib").startswith("2.3."):
-        obs, _ = env.get_observations()
+    obs = get_obs(env)
+    set_camera_to_env0_robot(env)
+    fixed_command = make_fixed_command(env.unwrapped.device)
+    if fixed_command is not None:
+        fixed_command = clamp_command(fixed_command, env_cfg)
+        applied_command = enforce_fixed_command(env, fixed_command)
+        obs = get_obs(env)
+        print(f"[INFO][StableVelocity] fixed command enabled: {applied_command[0].tolist()}")
     timestep = 0
     # simulate environment
     while simulation_app.is_running():
         start_time = time.time()
+        if fixed_command is not None:
+            live_command = enforce_fixed_command(env, fixed_command)
+            if args_cli.command_print_interval > 0 and timestep % args_cli.command_print_interval == 0:
+                robot = env.unwrapped.scene["robot"]
+                root_lin_vel_b = robot.data.root_lin_vel_b[0].tolist()
+                print(
+                    f"[play] step={timestep} command={live_command[0].tolist()} "
+                    f"root_lin_vel_b={root_lin_vel_b}"
+                )
         # run everything in inference mode
         with torch.inference_mode():
             # agent stepping
@@ -172,6 +289,8 @@ def main():
             # Exit the play loop after recording one video
             if timestep == args_cli.video_length:
                 break
+        else:
+            timestep += 1
 
         # time delay for real-time evaluation
         sleep_time = dt - (time.time() - start_time)

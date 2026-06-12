@@ -62,7 +62,7 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
             term_cfg.clip = action_term._clip[0].detach().cpu().numpy().tolist()
 
         if action_name in ["JointPositionAction", "JointVelocityAction"]:
-            if term_cfg.use_default_offset:
+            if getattr(term_cfg, "use_default_offset", False):
                 term_cfg.offset = action_term._offset[0].detach().cpu().numpy().tolist()
             else:
                 term_cfg.offset = [0.0 for _ in range(action_term.action_dim)]
@@ -71,7 +71,7 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
         term_cfg = term_cfg.to_dict()
 
         for _ in ["class_type", "asset_name", "debug_vis", "preserve_order", "use_default_offset"]:
-            del term_cfg[_]
+            term_cfg.pop(_, None)
         cfg["actions"][action_name] = term_cfg
 
         if action_term._joint_ids == slice(None):

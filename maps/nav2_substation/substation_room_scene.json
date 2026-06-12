@@ -1,0 +1,561 @@
+{
+  "description": "静态配电站房间：外墙 + 三排配电柜 + 柜面红色按钮操作点。坐标以机器人启动点为 map/odom 原点。",
+  "coordinate_frame": "odom_at_start",
+  "room": {
+    "origin": [
+      -2.0,
+      -7.5
+    ],
+    "size": [
+      21.0,
+      15.0
+    ],
+    "resolution": 0.05,
+    "wall_height": 2.2,
+    "cabinet_height": 1.8
+  },
+  "button_demo": {
+    "description": "红色按钮不参与 2D 占据图，只作为柜面可视操作目标；approach_goal 是底盘站位，press_pose 是后续手腕/工具末端按压目标。",
+    "home_goal": [
+      0.8,
+      0.0,
+      0.0
+    ],
+    "buttons": [
+      {
+        "name": "red_button_1",
+        "cabinet": "cabinet_r1_c1",
+        "face": "south",
+        "center": [
+          4.0,
+          -4.425,
+          0.96
+        ],
+        "size": [
+          0.2,
+          0.4,
+          0.2
+        ],
+        "normal": [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        "approach_goal": [
+          4.0,
+          -4.7749999999999995,
+          1.5708
+        ],
+        "press_pose": [
+          4.0,
+          -4.625,
+          0.96
+        ]
+      },
+      {
+        "name": "red_button_2",
+        "cabinet": "cabinet_r1_c2",
+        "face": "south",
+        "center": [
+          8.6,
+          -4.425,
+          0.96
+        ],
+        "size": [
+          0.2,
+          0.4,
+          0.2
+        ],
+        "normal": [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        "approach_goal": [
+          8.6,
+          -4.7749999999999995,
+          1.5708
+        ],
+        "press_pose": [
+          8.6,
+          -4.625,
+          0.96
+        ]
+      },
+      {
+        "name": "red_button_3",
+        "cabinet": "cabinet_r2_c2",
+        "face": "north",
+        "center": [
+          8.6,
+          0.625,
+          0.96
+        ],
+        "size": [
+          0.2,
+          0.4,
+          0.2
+        ],
+        "normal": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "approach_goal": [
+          8.6,
+          0.9750000000000001,
+          -1.5708
+        ],
+        "press_pose": [
+          8.6,
+          0.825,
+          0.96
+        ]
+      },
+      {
+        "name": "red_button_4",
+        "cabinet": "cabinet_r2_c4",
+        "face": "north",
+        "center": [
+          16.4,
+          0.625,
+          0.96
+        ],
+        "size": [
+          0.2,
+          0.4,
+          0.2
+        ],
+        "normal": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "approach_goal": [
+          16.4,
+          0.9750000000000001,
+          -1.5708
+        ],
+        "press_pose": [
+          16.4,
+          0.825,
+          0.96
+        ]
+      },
+      {
+        "name": "red_button_5",
+        "cabinet": "cabinet_r3_c2",
+        "face": "south",
+        "center": [
+          8.6,
+          3.175,
+          0.96
+        ],
+        "size": [
+          0.2,
+          0.4,
+          0.2
+        ],
+        "normal": [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        "approach_goal": [
+          8.6,
+          2.825,
+          1.5708
+        ],
+        "press_pose": [
+          8.6,
+          2.9749999999999996,
+          0.96
+        ]
+      },
+      {
+        "name": "red_button_6",
+        "cabinet": "cabinet_r3_c3",
+        "face": "south",
+        "center": [
+          13.0,
+          3.175,
+          0.96
+        ],
+        "size": [
+          0.2,
+          0.4,
+          0.2
+        ],
+        "normal": [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        "approach_goal": [
+          13.0,
+          2.825,
+          1.5708
+        ],
+        "press_pose": [
+          13.0,
+          2.9749999999999996,
+          0.96
+        ]
+      }
+    ]
+  },
+  "obstacles": [
+    {
+      "name": "wall_bottom",
+      "kind": "wall",
+      "center": [
+        8.5,
+        -7.4,
+        1.1
+      ],
+      "size": [
+        21.0,
+        0.2,
+        2.2
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "wall_top",
+      "kind": "wall",
+      "center": [
+        8.5,
+        7.4,
+        1.1
+      ],
+      "size": [
+        21.0,
+        0.2,
+        2.2
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "wall_left",
+      "kind": "wall",
+      "center": [
+        -1.9,
+        0.0,
+        1.1
+      ],
+      "size": [
+        0.2,
+        15.0,
+        2.2
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "wall_right",
+      "kind": "wall",
+      "center": [
+        18.9,
+        0.0,
+        1.1
+      ],
+      "size": [
+        0.2,
+        15.0,
+        2.2
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r1_c1",
+      "kind": "cabinet",
+      "center": [
+        4.2,
+        -3.8,
+        0.9
+      ],
+      "size": [
+        2.2,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r1_c2",
+      "kind": "cabinet",
+      "center": [
+        8.6,
+        -3.8,
+        0.9
+      ],
+      "size": [
+        2.2,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r1_c3",
+      "kind": "cabinet",
+      "center": [
+        13.0,
+        -3.8,
+        0.9
+      ],
+      "size": [
+        2.2,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r1_c4",
+      "kind": "cabinet",
+      "center": [
+        16.4,
+        -3.8,
+        0.9
+      ],
+      "size": [
+        1.6,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r2_c1",
+      "kind": "cabinet",
+      "center": [
+        4.2,
+        0.0,
+        0.9
+      ],
+      "size": [
+        2.2,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r2_c2",
+      "kind": "cabinet",
+      "center": [
+        8.6,
+        0.0,
+        0.9
+      ],
+      "size": [
+        2.2,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r2_c3",
+      "kind": "cabinet",
+      "center": [
+        13.0,
+        0.0,
+        0.9
+      ],
+      "size": [
+        2.2,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r2_c4",
+      "kind": "cabinet",
+      "center": [
+        16.4,
+        0.0,
+        0.9
+      ],
+      "size": [
+        1.6,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r3_c1",
+      "kind": "cabinet",
+      "center": [
+        4.2,
+        3.8,
+        0.9
+      ],
+      "size": [
+        2.2,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r3_c2",
+      "kind": "cabinet",
+      "center": [
+        8.6,
+        3.8,
+        0.9
+      ],
+      "size": [
+        2.2,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r3_c3",
+      "kind": "cabinet",
+      "center": [
+        13.0,
+        3.8,
+        0.9
+      ],
+      "size": [
+        2.2,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "cabinet_r3_c4",
+      "kind": "cabinet",
+      "center": [
+        16.4,
+        3.8,
+        0.9
+      ],
+      "size": [
+        1.6,
+        0.85,
+        1.8
+      ],
+      "yaw": 0.0,
+      "nav_occupied": true
+    },
+    {
+      "name": "red_button_1",
+      "kind": "button",
+      "center": [
+        4.0,
+        -4.425,
+        0.96
+      ],
+      "size": [
+        0.2,
+        0.4,
+        0.2
+      ],
+      "yaw": 0.0,
+      "nav_occupied": false
+    },
+    {
+      "name": "red_button_2",
+      "kind": "button",
+      "center": [
+        8.6,
+        -4.425,
+        0.96
+      ],
+      "size": [
+        0.2,
+        0.4,
+        0.2
+      ],
+      "yaw": 0.0,
+      "nav_occupied": false
+    },
+    {
+      "name": "red_button_3",
+      "kind": "button",
+      "center": [
+        8.6,
+        0.625,
+        0.96
+      ],
+      "size": [
+        0.2,
+        0.4,
+        0.2
+      ],
+      "yaw": 0.0,
+      "nav_occupied": false
+    },
+    {
+      "name": "red_button_4",
+      "kind": "button",
+      "center": [
+        16.4,
+        0.625,
+        0.96
+      ],
+      "size": [
+        0.2,
+        0.4,
+        0.2
+      ],
+      "yaw": 0.0,
+      "nav_occupied": false
+    },
+    {
+      "name": "red_button_5",
+      "kind": "button",
+      "center": [
+        8.6,
+        3.175,
+        0.96
+      ],
+      "size": [
+        0.2,
+        0.4,
+        0.2
+      ],
+      "yaw": 0.0,
+      "nav_occupied": false
+    },
+    {
+      "name": "red_button_6",
+      "kind": "button",
+      "center": [
+        13.0,
+        3.175,
+        0.96
+      ],
+      "size": [
+        0.2,
+        0.4,
+        0.2
+      ],
+      "yaw": 0.0,
+      "nav_occupied": false
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+Unitree RL Lab container notes - MoveIt dependency
+Date: 2026-06-04 14:02 UTC
+
+What was installed in this running container:
+- ros-jazzy-moveit
+- ros-jazzy-moveit-servo
+
+Why:
+- The button/MoveIt operation chain imports moveit_msgs and uses MoveIt Servo / move_group.
+- Before installation, moveit_msgs was missing and `bash scripts/demo.sh button --print-only` failed at import time.
+
+Validation already passed:
+- `moveit_msgs` imports from system ROS Python after sourcing `/opt/ros/jazzy/setup.bash`.
+- ROS can find these packages:
+  - moveit_msgs
+  - moveit_servo
+  - moveit_ros_move_group
+  - moveit_ros_planning_interface
+- `bash scripts/demo.sh button --print-only` runs and prints the button scene instead of failing on MoveIt imports.
+- `apt-get update` passes after fixing `/tmp` permissions.
+
+Important: save this container as an image before closing/recreating it.
+If you do not save the image, the apt-installed MoveIt packages may disappear the next time a fresh container is created.
+
+Suggested host-side save command:
+1. Find the container id/name on the host:
+   docker ps
+2. Commit it to a new image tag:
+   docker commit <container_id_or_name> unitree_rl_lab:jazzy-moveit-20260604
+3. Next time, start from that image tag instead of the older base image.
+
+If using docker compose:
+- Update docker/docker-compose.yaml or your launch command so the service image is:
+  unitree_rl_lab:jazzy-moveit-20260604
+- Do not run `docker compose down -v` unless you intentionally want to remove named volumes/data.
+- If you rebuild from Dockerfile later, add the MoveIt packages to Dockerfile too, otherwise the rebuild can lose them.
+
+Recommended Dockerfile line for a future rebuild:
+  apt-get update && apt-get install -y ros-jazzy-moveit ros-jazzy-moveit-servo
+
+If apt complains about temporary files in `/tmp`:
+  chmod 1777 /tmp
+Then rerun:
+  apt-get update
+
+Runtime reminders for the demo:
+- Use system ROS Python for ROS/MoveIt scripts:
+  env -u PYTHONHOME -u PYTHONPATH -u PYTHONEXECUTABLE bash --noprofile --norc -lc 'source /opt/ros/jazzy/setup.bash && <command>'
+- For the patrol + operation stack, start the policy bridge first, then Nav2/MoveIt, then button state machine.
+- Keep ARM_MAX_DELTA_PER_STEP around 0.0005 for stable arm override during button pressing.
+- For close-range debugging, use:
+  maps/nav2_substation/near_button_scene_debug.json
+
+Useful checks:
+  source /opt/ros/jazzy/setup.bash
+  python3 -c "from moveit_msgs.msg import MoveItErrorCodes; print('moveit_msgs ok')"
+  ros2 pkg prefix moveit_servo
+  ros2 pkg prefix moveit_ros_move_group
+  bash scripts/demo.sh button --print-only

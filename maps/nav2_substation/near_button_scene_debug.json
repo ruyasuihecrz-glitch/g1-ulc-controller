@@ -1,0 +1,37 @@
+{
+  "description": "Debug scene with one button placed close to the robot start pose.",
+  "coordinate_frame": "odom_at_start",
+  "button_demo": {
+    "home_goal": [0.0, 0.0, 0.0],
+    "buttons": [
+      {
+        "name": "red_button_1",
+        "cabinet": "debug_close_cabinet",
+        "face": "south",
+        "center": [0.25, -0.20, 1.25],
+        "size": [0.20, 0.20, 0.20],
+        "normal": [0.0, -1.0, 0.0],
+        "approach_goal": [0.0, 0.0, 0.0],
+        "press_pose": [0.25, -0.20, 1.25]
+      }
+    ]
+  },
+  "obstacles": [
+    {
+      "name": "debug_close_cabinet",
+      "kind": "cabinet",
+      "center": [0.25, -0.42, 0.90],
+      "size": [0.60, 0.08, 1.80],
+      "yaw": 0.0,
+      "nav_occupied": false
+    },
+    {
+      "name": "red_button_1",
+      "kind": "button",
+      "center": [0.25, -0.20, 1.25],
+      "size": [0.20, 0.04, 0.20],
+      "yaw": 0.0,
+      "nav_occupied": false
+    }
+  ]
+}

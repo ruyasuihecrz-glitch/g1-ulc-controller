@@ -1,0 +1,69 @@
+cd /workspace/data/repos/unitree_rl_lab
+bash scripts/demo.sh --help
+
+
+
+# 终端 1：policy + Isaac + ROS bridge
+HEADLESS=false bash scripts/demo.sh policy-substation
+
+# 终端 2：Nav2 配电站地图
+bash scripts/demo.sh nav2-substation
+
+# 可选检查：TF 应该能连通 map/odom/base_link/pelvis/torso_link
+env -u PYTHONHOME -u PYTHONPATH -u PYTHONEXECUTABLE bash --noprofile --norc -lc \
+'source /opt/ros/jazzy/setup.bash && ros2 run tf2_ros tf2_echo map torso_link'
+
+# 终端 3：配电站巡逻
+bash scripts/demo.sh patrol-substation
+
+
+
+
+# 终端 3 或新终端：MoveIt Servo 右臂 IK 服务
+bash scripts/demo.sh servo
+
+# 终端 4：按第一个按钮
+# 默认 ik_twist 模式会冻结底盘，用 TF 闭环驱动 right_rubber_hand 到按钮。
+bash scripts/demo.sh button
+
+# 可选：调试绝对 pose target 或直接关节模式
+# SERVO_MODE=pose_target bash scripts/demo.sh button
+# SERVO_MODE=direct_joint bash scripts/demo.sh button
+
+
+
+bash scripts/demo.sh train-turn
+
+source /opt/ros/jazzy/setup.bash
+
+pkill -f demo.sh
+pkill -f run_g1
+pkill -f nav2
+pkill -f move_group
+pkill -f robot_state_publisher
+pkill -f ros2
+pkill -f isaac
+
+env _DELTA_PER_STEP=0.010 HEADLESS=false bash scripts/demo.sh policy-substation
+
+bash scripts/demo.sh nav2-substation
+
+bash scripts/demo.sh moveit-ik
+SERVO_MODE=moveit_ik \
+MAX_BUTTONS=1 \
+WORK_BASE_DISTANCE=0.38 \
+WORK_XY_TOLERANCE=0.2 \
+WORK_YAW_TOLERANCE=0.25 \
+PRESS_LOCAL_X_MIN=0.28 \
+PRESS_LOCAL_X_MAX=0.40 \
+PRESS_LOCAL_Y_TARGET=-0.14 \
+PRESS_LOCAL_Y_TOLERANCE=0.06 \
+IK_JOINT_TOLERANCE=0.25 \
+STABLE_BASE_HOLD=0.2 \
+PREPRESS_RETREAT=0.0 \
+PRESS_OVERSHOOT=0.0 \
+bash scripts/demo.sh button
+
+
+bash scripts/_internal/entry/open_substation_usdz_gui.sh \
+  /workspace/data/lcc2_from_sog_tool/444ab7c3911871d73a84e531866561ff_lod4_nurec_with_collision.usdz

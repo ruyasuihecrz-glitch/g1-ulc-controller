@@ -1,0 +1,180 @@
+# G1 配电站静态地图 Nav2 参数
+#
+# 使用方式：
+#   1. Isaac 里用 scene_json 生成墙体/配电柜 cube collider。
+#   2. Nav2 里用同一份脚本生成的 pgm/yaml 静态地图。
+#   3. 定位不使用 AMCL/SLAM，直接使用 Isaac ground-truth odom + 静态 map->odom。
+#
+# 这个配置的核心避障逻辑：
+#   - planner_server / global_costmap：
+#       读取静态地图里的墙和配电柜，做全局路径规划。
+#   - controller_server / local_costmap：
+#       在机器人附近滚动窗口里也加载静态地图，RPP controller 可以检查未来一小段轨迹是否会撞障碍。
+#   - inflation_layer：
+#       把障碍物周围膨胀成“危险区”，让路径离配电柜和墙远一点。
+#   - velocity_smoother：
+#       限制速度和加速度，避免 G1 policy 收到突变指令导致身体歪斜。
+#
+# 调参优先级建议：
+#   1. 撞柜子/贴太近：增大 inflation_radius 或 robot_radius。
+#   2. 走得太保守：减小 inflation_radius 或 cost_scaling_factor。
+#   3. 步态发飘/歪斜：降低 max_velocity[0]、max_accel[0]。
+#   4. 转弯太急：降低 max_velocity[2]，增大 lookahead_dist。
+#   5. 目标附近磨蹭：增大 xy_goal_tolerance，或减小 approach_velocity_scaling_dist。
+
+bt_navigator:
+  ros__parameters:
+    use_sim_time: true
+    # Nav2 使用 map 坐标系规划；map->odom 由启动脚本发布静态变换。
+    global_frame: map
+    # 机器人机体坐标系，由 bridge 从 Isaac ground truth 发布。
+    robot_base_frame: base_link
+    # 里程计来自 Isaac ground truth，不经过 AMCL。
+    odom_topic: /odom
+
+planner_server:
+  ros__parameters:
+    use_sim_time: true
+    # 全局规划频率。静态地图里 3~5Hz 足够，太高只会增加计算。
+    expected_planner_frequency: 5.0
+    planner_plugins: ["GridBased"]
+    GridBased:
+      # NavFn 是经典栅格规划器，适合这种静态配电站地图。
+      plugin: nav2_navfn_planner::NavfnPlanner
+      # 目标附近 0.5m 内可接受，避免柜子附近因为像素边界导致规划失败。
+      tolerance: 0.5
+      # false 使用 Dijkstra 风格，路径更稳；true 是 A*，通常更快但路径可能更贴边。
+      use_astar: false
+      # 静态地图中未知区域较少，这里允许 unknown 方便地图边界附近调试。
+      allow_unknown: true
+
+controller_server:
+  ros__parameters:
+    use_sim_time: true
+    # 控制频率。G1 policy/bridge 50Hz，Nav2 controller 10Hz 给速度目标即可。
+    controller_frequency: 10.0
+    min_x_velocity_threshold: 0.02
+    min_y_velocity_threshold: 0.02
+    min_theta_velocity_threshold: 0.02
+    odom_topic: /odom
+    # 控制器短时间没进展时先容忍一下，避免大转弯或窄通道马上 abort。
+    failure_tolerance: 1.0
+    progress_checker_plugins: ["progress_checker"]
+    goal_checker_plugins: ["goal_checker"]
+    controller_plugins: ["FollowPath"]
+    progress_checker:
+      plugin: nav2_controller::SimpleProgressChecker
+      # 30s 内至少移动 5cm。G1 有时会慢启动，阈值不能太激进。
+      required_movement_radius: 0.05
+      movement_time_allowance: 30.0
+    goal_checker:
+      plugin: nav2_controller::SimpleGoalChecker
+      # 配电站演示只强调到达区域，不强求脚尖朝向，避免 policy 原地对 yaw。
+      xy_goal_tolerance: 0.45
+      yaw_goal_tolerance: 3.14
+      stateful: true
+    FollowPath:
+      plugin: nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController
+      transform_tolerance: 0.5
+      # 期望巡航速度。展示版稍微放开到 0.45m/s，真实执行还会受 velocity_smoother 限制。
+      desired_linear_vel: 0.45
+      # 前视距离越大越容易“抄近道切角”；配电站绕柜时用较小前视贴近全局路径。
+      lookahead_dist: 0.8
+      min_lookahead_dist: 0.5
+      max_lookahead_dist: 1.1
+      lookahead_time: 2.0
+      use_velocity_scaled_lookahead_dist: true
+      # 接近目标时最低速度，太小会挪步，太大可能冲过目标。
+      min_approach_linear_velocity: 0.16
+      # 距目标多远开始降速；配电站路线建议 0.5~0.8。
+      approach_velocity_scaling_dist: 0.6
+      # 打开 RPP 的局部碰撞预测，让控制器不要把轨迹切进障碍 inflation 区。
+      use_collision_detection: true
+      # RPP 向前预测多长时间内的碰撞。太大时会在柜角附近过早判定 collision ahead。
+      # 配电站演示用 0.8s，保留避障能力，同时减少贴近柜角时的误停。
+      max_allowed_time_to_collision_up_to_carrot: 0.8
+      # 根据曲率限速，防止急弯时给太大的线速度。
+      use_regulated_linear_velocity_scaling: true
+      # 靠近柜子 inflation 区时自动降速，减少实际机器人因为惯性/步态晃动切进柜角。
+      use_cost_regulated_linear_velocity_scaling: true
+      regulated_linear_scaling_min_radius: 0.9
+      regulated_linear_scaling_min_speed: 0.14
+      # 这个 policy 不擅长原地转身，所以不强制 rotate-to-heading。
+      use_rotate_to_heading: false
+      rotate_to_heading_angular_vel: 0.20
+      allow_reversing: false
+      max_angular_accel: 0.45
+      max_robot_pose_search_dist: 10.0
+      stateful: true
+
+velocity_smoother:
+  ros__parameters:
+    use_sim_time: true
+    smoothing_frequency: 10.0
+    scale_velocities: false
+    # OPEN_LOOP 不依赖 odom 反馈做闭环速度平滑，工程上更简单。
+    feedback: OPEN_LOOP
+    # [vx, vy, wz] 最大速度。G1 不训练横向走，所以 vy 固定 0。
+    max_velocity: [0.45, 0.0, 0.26]
+    min_velocity: [0.0, 0.0, -0.26]
+    # 加速度越大越“猛”，但也越容易歪。歪斜时先降 max_accel[0]。
+    max_accel: [0.30, 0.0, 0.35]
+    max_decel: [-0.38, 0.0, -0.35]
+    odom_topic: /odom
+    odom_duration: 0.3
+    velocity_timeout: 1.0
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: true
+      global_frame: odom
+      robot_base_frame: base_link
+      rolling_window: true
+      update_frequency: 10.0
+      publish_frequency: 5.0
+      # 局部窗口要覆盖前方几个柜子间距；太小会看不到拐角，太大计算更重。
+      width: 10
+      height: 10
+      resolution: 0.05
+      # 机器人半径。展示版用 0.42，给柜间通道留一点空间；如果蹭柜再调回 0.45。
+      robot_radius: 0.42
+      plugins: ["static_layer", "inflation_layer"]
+      static_layer:
+        plugin: nav2_costmap_2d::StaticLayer
+        map_subscribe_transient_local: true
+      inflation_layer:
+        plugin: nav2_costmap_2d::InflationLayer
+        # 膨胀半径：障碍周围多宽算危险区。柜间过窄就调小，贴柜就调大。
+        inflation_radius: 0.68
+        # 衰减系数：越大，危险区外沿下降越快，路径更愿意贴近障碍。
+        cost_scaling_factor: 2.8
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: true
+      global_frame: map
+      robot_base_frame: base_link
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      resolution: 0.05
+      track_unknown_space: false
+      robot_radius: 0.42
+      plugins: ["static_layer", "inflation_layer"]
+      static_layer:
+        plugin: nav2_costmap_2d::StaticLayer
+        map_subscribe_transient_local: true
+      inflation_layer:
+        plugin: nav2_costmap_2d::InflationLayer
+        inflation_radius: 0.68
+        cost_scaling_factor: 2.8
+
+map_server:
+  ros__parameters:
+    use_sim_time: true
+    yaml_filename: /workspace/data/repos/unitree_rl_lab/maps/nav2_substation/substation_room.yaml
+
+map_saver:
+  ros__parameters:
+    use_sim_time: true

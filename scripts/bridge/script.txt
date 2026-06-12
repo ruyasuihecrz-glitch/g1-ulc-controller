@@ -1,0 +1,23 @@
+桥接展示
+
+统一入口：
+
+  bash scripts/demo.sh <command>
+
+配电站 policy + ROS bridge：
+
+  HEADLESS=false bash scripts/demo.sh policy-substation
+
+MoveIt Servo：
+
+  bash scripts/demo.sh servo
+
+桥接结构：
+  ROS /cmd_vel -> UDP :15000 -> Isaac policy
+  Isaac GT odom/joint_states -> UDP :15001 -> ROS /odom /joint_states /tf /clock
+  MoveIt Servo trajectory -> UDP :15003 -> Isaac right arm override
+
+实现细节在：
+  scripts/_internal/bridge/ros2_g1_udp_bridge.py
+  scripts/_internal/bridge/play_g1_policy_cmdvel_udp.py
+  scripts/_internal/bridge/moveit_servo_udp_bridge.py

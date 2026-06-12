@@ -24,7 +24,10 @@ for task_spec in gym.registry.values():
 
 import argparse
 
-import argcomplete
+try:
+    import argcomplete
+except ModuleNotFoundError:
+    argcomplete = None
 
 from isaaclab.app import AppLauncher
 
@@ -47,7 +50,8 @@ parser.add_argument(
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
-argcomplete.autocomplete(parser)
+if argcomplete is not None:
+    argcomplete.autocomplete(parser)
 args_cli, hydra_args = parser.parse_known_args()
 
 # always enable cameras to record video
@@ -110,6 +114,11 @@ from isaaclab_tasks.utils.hydra import hydra_task_config
 
 import unitree_rl_lab.tasks  # noqa: F401
 from unitree_rl_lab.utils.export_deploy_cfg import export_deploy_cfg
+from unitree_rl_lab.utils.rsl_rl_stability import (
+    StableVelocityNumericalStabilityError,
+    install_stable_velocity_runtime_guards,
+    load_runner_checkpoint_compat,
+)
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -188,7 +197,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     if agent_cfg.resume or agent_cfg.algorithm.class_name == "Distillation":
         print(f"[INFO]: Loading model checkpoint from: {resume_path}")
         # load previously trained model
-        runner.load(resume_path)
+        load_runner_checkpoint_compat(runner, resume_path)
 
     # dump the configuration into log-directory
     dump_yaml(os.path.join(log_dir, "params", "env.yaml"), env_cfg)
@@ -200,11 +209,29 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         os.path.join(log_dir, "params", os.path.basename(inspect.getfile(env_cfg.__class__))),
     )
 
-    # run training
-    runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
+    guard_status = install_stable_velocity_runtime_guards(args_cli.task, env, runner, policy_cfg=agent_cfg.policy)
+    if guard_status["enabled"]:
+        print(
+            "[INFO][StableVelocity] runtime guards enabled: "
+            f"std_positive_guard={guard_status['std_positive_guard']} "
+            f"finite_guard={guard_status['finite_guard']} "
+            f"std_min={guard_status['std_min']}"
+        )
 
-    # close the simulator
-    env.close()
+    # run training
+    try:
+        runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
+    except StableVelocityNumericalStabilityError as exc:
+        print(str(exc))
+        raise SystemExit(1) from exc
+    except RuntimeError as exc:
+        if "std >= 0.0" in str(exc):
+            print(f"[FATAL][StableVelocity] action std became invalid: {exc}")
+            raise SystemExit(1) from exc
+        raise
+    finally:
+        # close the simulator
+        env.close()
 
 
 if __name__ == "__main__":

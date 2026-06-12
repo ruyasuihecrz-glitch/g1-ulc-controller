@@ -1,0 +1,57 @@
+Open substation USDZ in Isaac Lab / Isaac Sim
+============================================
+
+Current working paths in this container:
+
+  Isaac Lab launcher:
+    /workspace/isaaclab/isaaclab.sh
+
+  Substation USDZ:
+    /workspace/data/substation_final_gs_mesh_collision.usdz
+
+One-command launcher:
+
+  cd /workspace/data/repos/unitree_rl_lab
+  bash scripts/_internal/entry/open_substation_usdz_gui.sh
+
+Manual command:
+
+  cd /workspace/data/repos/unitree_rl_lab
+  TERM=xterm SUBSTATION_USDZ_PATH=/workspace/data/substation_final_gs_mesh_collision.usdz \
+    /workspace/isaaclab/isaaclab.sh -s \
+    --exec scripts/_internal/isaac/open_substation_stage.py \
+    --/app/window/width=2880 \
+    --/app/window/height=1800
+
+Why TERM=xterm is included:
+
+  In some Codex/container terminals TERM is "dumb". Isaac Lab's launcher may call
+  "tabs", and that can fail under TERM=dumb before Isaac Sim starts. Setting
+  TERM=xterm avoids that launcher-side failure.
+
+If you are on the host machine instead of this container:
+
+  The same file may appear as:
+    /mnt/data/substation_final_gs_mesh_collision.usdz
+
+  Then use the host launcher first, then open the file from the GUI:
+    cd /mnt/data/isaac-lab
+    TERM=xterm ./isaaclab.sh -s
+
+  In Isaac Sim:
+    File -> Open -> /mnt/data/substation_final_gs_mesh_collision.usdz
+
+If the host path is not visible inside a container:
+
+  Start the container with the data disk mounted, for example:
+    -v /mnt/data:/workspace/data
+
+  Then the container command above will work.
+
+After opening:
+
+  Save a working copy as USD, for example:
+    /workspace/data/substation_final_gs_mesh_collision.usd
+
+  USD is better than USDZ for repeated Isaac Lab scene editing, collision checks,
+  Nav2 map generation, and robot debugging.

@@ -128,6 +128,32 @@ def foot_clearance_reward(
     return torch.exp(-torch.sum(reward, dim=1) / std)
 
 
+def gated_foot_clearance_reward(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    target_height: float,
+    std: float,
+    tanh_mult: float,
+    command_name: str = "base_velocity",
+    command_threshold: float = 0.1,
+    motion_threshold: float = 0.05,
+) -> torch.Tensor:
+    """Reward foot clearance only when commanded and actual base motion are non-trivial.
+
+    This keeps the official foot-clearance shaping, but prevents a standing policy from
+    collecting swing-foot reward by lifting or jittering its feet without translating or turning.
+    """
+
+    asset: RigidObject = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    command_norm = torch.sqrt(torch.square(command[:, 0]) + torch.square(command[:, 2]))
+    actual_motion = torch.sqrt(
+        torch.square(asset.data.root_lin_vel_b[:, 0]) + torch.square(asset.data.root_ang_vel_b[:, 2])
+    )
+    motion_gate = torch.logical_and(command_norm > command_threshold, actual_motion > motion_threshold)
+    return foot_clearance_reward(env, asset_cfg, target_height, std, tanh_mult) * motion_gate.float()
+
+
 def feet_too_near(
     env: ManagerBasedRLEnv, threshold: float = 0.2, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
@@ -223,3 +249,151 @@ def joint_mirror(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg, mirror_joint
         )
     reward *= 1 / len(mirror_joints) if len(mirror_joints) > 0 else 0
     return reward
+
+
+def lateral_vel_when_no_vy_l2(
+    env: ManagerBasedRLEnv,
+    command_name: str = "base_velocity",
+    threshold: float = 0.05,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize lateral drift when the commanded lateral velocity is close to zero.
+
+    The penalty is the squared body-frame base lateral velocity and is only active when
+    ``abs(command[:, 1]) < threshold``.
+    """
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    mask = torch.abs(command[:, 1]) < threshold
+    penalty = torch.square(asset.data.root_lin_vel_b[:, 1])
+    return penalty * mask.float()
+
+
+def yaw_rate_when_no_wz_l2(
+    env: ManagerBasedRLEnv,
+    command_name: str = "base_velocity",
+    threshold: float = 0.05,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize yaw drift when the commanded yaw rate is close to zero.
+
+    The penalty is the squared body-frame yaw angular velocity and is only active when
+    ``abs(command[:, 2]) < threshold``.
+    """
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    mask = torch.abs(command[:, 2]) < threshold
+    penalty = torch.square(asset.data.root_ang_vel_b[:, 2])
+    return penalty * mask.float()
+
+
+def forward_motion_when_commanded_l2(
+    env: ManagerBasedRLEnv,
+    command_name: str = "base_velocity",
+    threshold: float = 0.10,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize missing forward motion when a positive forward command is active.
+
+    This term is intentionally one-sided for the first Nav2 patrol policy: it does not
+    penalize stop commands and it does not assume backward walking support.
+    """
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    missing_speed = torch.clamp(command[:, 0] - asset.data.root_lin_vel_b[:, 0], min=0.0)
+    return torch.square(missing_speed) * (command[:, 0] > threshold).float()
+
+
+def turn_when_commanded_l2(
+    env: ManagerBasedRLEnv,
+    command_name: str = "base_velocity",
+    threshold: float = 0.15,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize missing yaw-rate response when a turn command is active."""
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    cmd_wz = command[:, 2]
+    actual_along_cmd = asset.data.root_ang_vel_b[:, 2] * torch.sign(cmd_wz)
+    missing_turn = torch.clamp(torch.abs(cmd_wz) - actual_along_cmd, min=0.0)
+    return torch.square(missing_turn) * (torch.abs(cmd_wz) > threshold).float()
+
+
+def selected_action_rate_l2(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Penalize the rate of change of selected joint action dimensions using an L2 squared kernel."""
+
+    return torch.sum(
+        torch.square(
+            env.action_manager.action[:, asset_cfg.joint_ids] - env.action_manager.prev_action[:, asset_cfg.joint_ids]
+        ),
+        dim=1,
+    )
+
+
+def low_command_base_lin_vel_xy_l2(
+    env: ManagerBasedRLEnv,
+    command_name: str = "base_velocity",
+    threshold: float = 0.08,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize horizontal base drift when the requested base motion is near zero."""
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    command_norm = torch.sqrt(torch.square(command[:, 0]) + torch.square(command[:, 1]) + torch.square(command[:, 2]))
+    penalty = torch.sum(torch.square(asset.data.root_lin_vel_b[:, :2]), dim=1)
+    return penalty * (command_norm < threshold).float()
+
+
+def low_command_base_ang_vel_l2(
+    env: ManagerBasedRLEnv,
+    command_name: str = "base_velocity",
+    threshold: float = 0.08,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize body angular motion when standing for upper-body manipulation."""
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    command = env.command_manager.get_command(command_name)
+    command_norm = torch.sqrt(torch.square(command[:, 0]) + torch.square(command[:, 1]) + torch.square(command[:, 2]))
+    penalty = torch.sum(torch.square(asset.data.root_ang_vel_b), dim=1)
+    return penalty * (command_norm < threshold).float()
+
+
+def upper_body_com_xy_deadband_l2(
+    env: ManagerBasedRLEnv,
+    deadband: float = 0.10,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Softly penalize large upper-body XY center shifts relative to the base.
+
+    This is an approximate body-average term rather than an exact mass-weighted COM.
+    It is meant as a conservative guardrail for bad arm/waist branches while still
+    allowing moderate reaching motions.
+    """
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    upper_body_pos_w = asset.data.body_pos_w[:, asset_cfg.body_ids, :].mean(dim=1)
+    rel_w = upper_body_pos_w - asset.data.root_pos_w
+    rel_b = quat_apply_inverse(asset.data.root_quat_w, rel_w)
+    offset_xy = torch.linalg.norm(rel_b[:, :2], dim=1)
+    return torch.square(torch.clamp(offset_xy - deadband, min=0.0))
+
+
+def bad_upper_body_branch_l2(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize dynamically ugly upper-body branches seen to destabilize the base."""
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
+    default_pos = asset.data.default_joint_pos[:, asset_cfg.joint_ids]
+    deviation = joint_pos - default_pos
+    return torch.sum(torch.square(deviation), dim=1)

@@ -1,0 +1,34 @@
+导航 + 操作展示
+
+统一入口：
+
+  bash scripts/demo.sh <command>
+
+按第一个按钮的四终端流程：
+
+终端 1：
+  HEADLESS=false bash scripts/demo.sh policy-substation
+
+终端 2：
+  bash scripts/demo.sh nav2-substation
+
+终端 3：
+  bash scripts/demo.sh servo
+
+终端 4：
+  bash scripts/demo.sh button
+
+成功标志：
+  1. “按钮进入右臂可达窗口”
+  2. “button pressed: red_button_1”
+  3. “按钮 Servo 状态机循环完成”
+
+实现细节在：
+  scripts/_internal/tasks/g1_button_servo_state_machine.py
+  scripts/_internal/bridge/moveit_servo_udp_bridge.py
+
+按钮 GT 来自：
+  maps/nav2_substation/substation_room_scene.json
+
+已知问题：
+  MoveIt Servo 仍接近奇异，后续要加 ready posture 或优化按钮工作空间。

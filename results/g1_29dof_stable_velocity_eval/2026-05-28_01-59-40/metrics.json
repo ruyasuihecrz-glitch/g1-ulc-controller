@@ -1,0 +1,161 @@
+{
+  "stand": {
+    "command": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "root_height_mean": 0.7899182852506638,
+    "root_height_std": 0.0011385929925048512,
+    "xy_displacement": 0.12861983478069305,
+    "yaw_drift": 0.04005846194922924,
+    "lateral_drift": 0.1256275177001953,
+    "termination_count": 1,
+    "mean_reward": 0.050703698787838224,
+    "action_rate_mean": 0.00471836683548463,
+    "base_ang_vel_mean": 0.049093783115968105,
+    "feet_slide_reward_mean": 0.017075792387127878,
+    "arm_deviation_reward_mean": 0.07318433685600757,
+    "pass": false
+  },
+  "slow_walk": {
+    "command": [
+      0.10000000149011612,
+      0.0,
+      0.0
+    ],
+    "root_height_mean": 0.7897780820727348,
+    "root_height_std": 0.001327636915451139,
+    "xy_displacement": 0.14567281305789948,
+    "yaw_drift": -0.10298928618431091,
+    "lateral_drift": -0.1262950897216797,
+    "termination_count": 1,
+    "mean_reward": 0.05071343241631985,
+    "action_rate_mean": 0.004469006334766164,
+    "base_ang_vel_mean": 0.0814038174301386,
+    "feet_slide_reward_mean": 0.018721853412222118,
+    "arm_deviation_reward_mean": 0.06348562494665384,
+    "pass": false
+  },
+  "medium_walk": {
+    "command": [
+      0.20000000298023224,
+      0.0,
+      0.0
+    ],
+    "root_height_mean": 0.7868756572008133,
+    "root_height_std": 0.0014326335337810077,
+    "xy_displacement": 0.12883500754833221,
+    "yaw_drift": -0.027183428406715393,
+    "lateral_drift": 0.1212778091430664,
+    "termination_count": 1,
+    "mean_reward": 0.0582838234975934,
+    "action_rate_mean": 0.004651805704284925,
+    "base_ang_vel_mean": 0.07749646997638046,
+    "feet_slide_reward_mean": 0.03229531218949706,
+    "arm_deviation_reward_mean": 0.0573542564548552,
+    "pass": false
+  },
+  "fast_patrol": {
+    "command": [
+      0.3499999940395355,
+      0.0,
+      0.0
+    ],
+    "root_height_mean": 0.7880731309652329,
+    "root_height_std": 0.0015597103465492372,
+    "xy_displacement": 0.1686067432165146,
+    "yaw_drift": 0.17971515655517578,
+    "lateral_drift": -0.14972782135009766,
+    "termination_count": 1,
+    "mean_reward": 0.05451637642458081,
+    "action_rate_mean": 0.004236376501416089,
+    "base_ang_vel_mean": 0.09689688156917692,
+    "feet_slide_reward_mean": 0.013116532503161579,
+    "arm_deviation_reward_mean": 0.04846344401687384,
+    "pass": false
+  },
+  "turn_left": {
+    "command": [
+      0.0,
+      0.0,
+      0.15000000596046448
+    ],
+    "root_height_mean": 0.7885135623216629,
+    "root_height_std": 0.0011712959973220654,
+    "xy_displacement": 0.10719408839941025,
+    "yaw_drift": -0.1535276100039482,
+    "lateral_drift": 0.05446434020996094,
+    "termination_count": 1,
+    "mean_reward": 0.06118961260095239,
+    "action_rate_mean": 0.005476841820636764,
+    "base_ang_vel_mean": 0.059861281760036945,
+    "feet_slide_reward_mean": 0.006746106777805835,
+    "arm_deviation_reward_mean": 0.101042245388031,
+    "pass": false
+  },
+  "turn_right": {
+    "command": [
+      0.0,
+      0.0,
+      -0.15000000596046448
+    ],
+    "root_height_mean": 0.7898259831666946,
+    "root_height_std": 0.001149522533511976,
+    "xy_displacement": 0.07861533015966415,
+    "yaw_drift": -0.011849179863929749,
+    "lateral_drift": 0.07747459411621094,
+    "termination_count": 1,
+    "mean_reward": 0.06055034510791302,
+    "action_rate_mean": 0.004096731848054333,
+    "base_ang_vel_mean": 0.057376383952796456,
+    "feet_slide_reward_mean": 0.023257579064927994,
+    "arm_deviation_reward_mean": 0.08419770866632462,
+    "pass": false
+  },
+  "side_step": {
+    "command": [
+      0.0,
+      0.10000000149011612,
+      0.0
+    ],
+    "root_height_mean": 0.792193647146225,
+    "root_height_std": 0.0009820661760959546,
+    "xy_displacement": 0.14533281326293945,
+    "yaw_drift": 0.11095469444990158,
+    "lateral_drift": -0.1392831802368164,
+    "termination_count": 1,
+    "mean_reward": 0.05066514979675412,
+    "action_rate_mean": 0.0043556578584830275,
+    "base_ang_vel_mean": 0.05750148785673082,
+    "feet_slide_reward_mean": 0.011407426881138235,
+    "arm_deviation_reward_mean": 0.08601537128537894,
+    "pass": false
+  },
+  "stop_transition": {
+    "command": [
+      [
+        0.2,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "root_height_mean": 0.7870784794688225,
+    "root_height_std": 0.0020175099493089464,
+    "xy_displacement": 0.12299289554357529,
+    "yaw_drift": 0.041427142918109894,
+    "lateral_drift": 0.08496284484863281,
+    "termination_count": 1,
+    "mean_reward": 0.05466475209593773,
+    "action_rate_mean": 0.004821714934718329,
+    "base_ang_vel_mean": 0.07598687544465065,
+    "feet_slide_reward_mean": 0.02030089291371405,
+    "arm_deviation_reward_mean": 0.07438687716051937,
+    "pass": false
+  }
+}

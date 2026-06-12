@@ -1,0 +1,33 @@
+纯导航展示
+
+明天不要直接找一堆 run 脚本，统一用：
+
+  bash scripts/demo.sh <command>
+
+配电站巡逻：
+
+终端 1：
+  HEADLESS=false bash scripts/demo.sh policy-substation
+
+终端 2：
+  bash scripts/demo.sh nav2-substation
+
+终端 3：
+  bash scripts/demo.sh patrol-substation
+
+空地图最小闭环：
+
+终端 1：
+  HEADLESS=true bash scripts/demo.sh policy-empty
+
+终端 2：
+  bash scripts/demo.sh nav2-empty
+
+终端 3：
+  bash scripts/demo.sh patrol-empty
+
+当前 Nav2：
+  planner = nav2_navfn_planner::NavfnPlanner
+  controller = nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController
+  避障 = static costmap + inflation layer + RegulatedPurePursuit collision check
+  定位 = Isaac ground truth odom，不是 SLAM

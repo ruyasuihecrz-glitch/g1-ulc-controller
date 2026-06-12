@@ -1,0 +1,30 @@
+Policy 训练
+
+统一入口：
+
+  bash scripts/demo.sh <command>
+
+继续转向微调：
+
+  bash scripts/demo.sh train-turn
+
+查看训练：
+
+  tmux attach -t g1_turn_finetune_train
+
+stable velocity 正式训练：
+
+  bash scripts/demo.sh train-stable
+
+Nav2 formal 训练：
+
+  bash scripts/demo.sh train-nav2
+
+讲解重点：
+  1. 基于官方 G1 29dof velocity recipe。
+  2. 从 model_14000.pt 继续 turn-finetune。
+  3. 增强 yaw-rate command sampling 和转向 reward。
+  4. 当前展示默认 ckpt 是 model_15999.pt。
+
+具体入口脚本在：
+  scripts/_internal/entry/

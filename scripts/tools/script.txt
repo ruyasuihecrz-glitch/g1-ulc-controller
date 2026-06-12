@@ -1,0 +1,15 @@
+工具脚本
+
+明天展示不建议现场翻这里。只在排 bug 或重新生成地图时用。
+
+生成配电站地图：
+  python3 scripts/_internal/maps/create_substation_nav2_map.py
+
+生成空地图：
+  python3 scripts/_internal/maps/create_empty_nav2_map.py
+
+检查关节：
+  /workspace/isaaclab/isaaclab.sh -p scripts/_internal/debug/inspect_g1_joints.py --headless
+
+ROS2 依赖安装脚本：
+  scripts/_internal/setup/install_ros2_jazzy_nav2.sh
