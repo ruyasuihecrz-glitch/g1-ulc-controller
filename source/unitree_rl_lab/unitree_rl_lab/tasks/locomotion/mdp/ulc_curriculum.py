@@ -47,7 +47,7 @@ def ulc_sequential_curriculum(
     hip_dev = _avg_unweighted_reward(env, "joint_deviation", env_ids)
     r_hip = torch.clamp(1.0 - hip_dev, min=0.0, max=1.0)
 
-    c_height = bool(r_height >= 0.85)
+    c_height = bool(r_height >= 0.83)
     c_velocity = bool(r_vel >= 0.8)
     c_hip = bool(r_hip >= 0.2)
     c2 = c_height and c_velocity and c_hip

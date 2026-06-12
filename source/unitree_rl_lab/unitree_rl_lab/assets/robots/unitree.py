@@ -703,6 +703,133 @@ UNITREE_G1_29DOF_MIMIC_CFG = UnitreeArticulationCfg(
     ],
 )
 
+
+# Hybrid hardware configuration for ULC:
+# - keep the mimic half-squat initial pose for root-height tracking
+# - use stronger locomotion/FALCON-like PD gains for velocity and torso stability
+UNITREE_G1_29DOF_ULC_HYBRID_CFG = UNITREE_G1_29DOF_MIMIC_CFG.replace(
+    actuators={
+        "legs": ImplicitActuatorCfg(
+            joint_names_expr=[
+                ".*_hip_yaw_joint",
+                ".*_hip_roll_joint",
+                ".*_hip_pitch_joint",
+                ".*_knee_joint",
+            ],
+            effort_limit_sim={
+                ".*_hip_yaw_joint": 88.0,
+                ".*_hip_roll_joint": 139.0,
+                ".*_hip_pitch_joint": 88.0,
+                ".*_knee_joint": 139.0,
+            },
+            velocity_limit_sim={
+                ".*_hip_yaw_joint": 32.0,
+                ".*_hip_roll_joint": 20.0,
+                ".*_hip_pitch_joint": 32.0,
+                ".*_knee_joint": 20.0,
+            },
+            stiffness={
+                ".*_hip_pitch_joint": 100.0,
+                ".*_hip_roll_joint": 100.0,
+                ".*_hip_yaw_joint": 100.0,
+                ".*_knee_joint": 150.0,
+            },
+            damping={
+                ".*_hip_pitch_joint": 2.5,
+                ".*_hip_roll_joint": 2.5,
+                ".*_hip_yaw_joint": 2.5,
+                ".*_knee_joint": 4.0,
+            },
+            armature={
+                ".*_hip_pitch_joint": ARMATURE_7520_14,
+                ".*_hip_roll_joint": ARMATURE_7520_22,
+                ".*_hip_yaw_joint": ARMATURE_7520_14,
+                ".*_knee_joint": ARMATURE_7520_22,
+            },
+        ),
+        "feet": ImplicitActuatorCfg(
+            joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
+            effort_limit_sim=50.0,
+            velocity_limit_sim=37.0,
+            stiffness=40.0,
+            damping=2.0,
+            armature=2.0 * ARMATURE_5020,
+        ),
+        "waist": ImplicitActuatorCfg(
+            joint_names_expr=["waist_roll_joint", "waist_pitch_joint"],
+            effort_limit_sim=50.0,
+            velocity_limit_sim=37.0,
+            stiffness=80.0,
+            damping=5.0,
+            armature=2.0 * ARMATURE_5020,
+        ),
+        "waist_yaw": ImplicitActuatorCfg(
+            joint_names_expr=["waist_yaw_joint"],
+            effort_limit_sim=88.0,
+            velocity_limit_sim=32.0,
+            stiffness=150.0,
+            damping=5.0,
+            armature=ARMATURE_7520_14,
+        ),
+        "arms": ImplicitActuatorCfg(
+            joint_names_expr=[
+                ".*_shoulder_pitch_joint",
+                ".*_shoulder_roll_joint",
+                ".*_shoulder_yaw_joint",
+                ".*_elbow_joint",
+                ".*_wrist_roll_joint",
+                ".*_wrist_pitch_joint",
+                ".*_wrist_yaw_joint",
+            ],
+            effort_limit_sim={
+                ".*_shoulder_pitch_joint": 25.0,
+                ".*_shoulder_roll_joint": 25.0,
+                ".*_shoulder_yaw_joint": 25.0,
+                ".*_elbow_joint": 25.0,
+                ".*_wrist_roll_joint": 25.0,
+                ".*_wrist_pitch_joint": 5.0,
+                ".*_wrist_yaw_joint": 5.0,
+            },
+            velocity_limit_sim={
+                ".*_shoulder_pitch_joint": 37.0,
+                ".*_shoulder_roll_joint": 37.0,
+                ".*_shoulder_yaw_joint": 37.0,
+                ".*_elbow_joint": 37.0,
+                ".*_wrist_roll_joint": 37.0,
+                ".*_wrist_pitch_joint": 22.0,
+                ".*_wrist_yaw_joint": 22.0,
+            },
+            stiffness={
+                ".*_shoulder_pitch_joint": 60.0,
+                ".*_shoulder_roll_joint": 40.0,
+                ".*_shoulder_yaw_joint": 20.0,
+                ".*_elbow_joint": 40.0,
+                ".*_wrist_roll_joint": 20.0,
+                ".*_wrist_pitch_joint": 8.0,
+                ".*_wrist_yaw_joint": 8.0,
+            },
+            damping={
+                ".*_shoulder_pitch_joint": 2.0,
+                ".*_shoulder_roll_joint": 1.0,
+                ".*_shoulder_yaw_joint": 0.5,
+                ".*_elbow_joint": 1.0,
+                ".*_wrist_roll_joint": 0.5,
+                ".*_wrist_pitch_joint": 0.2,
+                ".*_wrist_yaw_joint": 0.2,
+            },
+            armature={
+                ".*_shoulder_pitch_joint": ARMATURE_5020,
+                ".*_shoulder_roll_joint": ARMATURE_5020,
+                ".*_shoulder_yaw_joint": ARMATURE_5020,
+                ".*_elbow_joint": ARMATURE_5020,
+                ".*_wrist_roll_joint": ARMATURE_5020,
+                ".*_wrist_pitch_joint": ARMATURE_4010,
+                ".*_wrist_yaw_joint": ARMATURE_4010,
+            },
+        ),
+    },
+)
+
 UNITREE_G1_29DOF_MIMIC_ACTION_SCALE = {}
 for a in UNITREE_G1_29DOF_MIMIC_CFG.actuators.values():
     e = a.effort_limit_sim
