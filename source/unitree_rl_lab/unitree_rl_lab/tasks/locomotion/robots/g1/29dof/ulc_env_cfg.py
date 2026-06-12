@@ -112,7 +112,11 @@ class ULCRewardsCfg:
     action_rate = RewTerm(func=mdp.ulc_action_rate_l2, weight=-0.1)
     base_orientation = RewTerm(func=mdp.ulc_base_orientation_penalty, weight=-5.0)
     joint_pos_limit = RewTerm(func=mdp.ulc_joint_pos_limit, weight=-2.0)
-    joint_effort_limit = RewTerm(func=mdp.ulc_joint_effort_limit, weight=-2.0)
+    joint_effort_limit = RewTerm(
+        func=mdp.ulc_joint_effort_limit,
+        weight=-2.0,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names="waist_.*")},
+    )
     joint_deviation = RewTerm(func=mdp.ulc_hip_ankle_deviation, weight=-1.0)
 
     feet_slide = RewTerm(
@@ -126,7 +130,10 @@ class ULCRewardsCfg:
     feet_air_time = RewTerm(
         func=mdp.ulc_feet_air_time,
         weight=0.3,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_roll.*")},
+        params={
+            "command_name": "ulc_command",
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_roll.*"),
+        },
     )
     feet_force = RewTerm(
         func=mdp.ulc_feet_force,
@@ -134,7 +141,7 @@ class ULCRewardsCfg:
         params={"threshold": 500.0, "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_roll.*")},
     )
     feet_stumble = RewTerm(
-        func=mdp.feet_stumble,
+        func=mdp.ulc_feet_stumble,
         weight=-2.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_roll.*")},
     )

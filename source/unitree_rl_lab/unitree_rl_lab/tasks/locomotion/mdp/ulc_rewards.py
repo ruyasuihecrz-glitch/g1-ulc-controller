@@ -164,9 +164,17 @@ def ulc_action_rate_l2(env) -> torch.Tensor:
     return torch.sum(torch.square(env.action_manager.action - env.action_manager.prev_action), dim=1)
 
 
-def ulc_base_orientation_penalty(env, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def ulc_base_orientation_penalty(
+    env,
+    command_name: str = "ulc_command",
+    torso_command_deadband: float = 0.15,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
     zxy = _zxy_from_quat(_robot(env, asset_cfg).data.root_quat_w)
-    return torch.square(zxy[:, 1]) + torch.square(zxy[:, 2])
+    command = _command(env, command_name)
+    roll_mask = (torch.abs(command[:, 5]) <= torso_command_deadband).float()
+    pitch_mask = (torch.abs(command[:, 6]) <= torso_command_deadband).float()
+    return torch.square(zxy[:, 1]) * roll_mask + torch.square(zxy[:, 2]) * pitch_mask
 
 
 def ulc_joint_pos_limit(env, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
@@ -192,15 +200,36 @@ def ulc_hip_ankle_deviation(env, asset_cfg: SceneEntityCfg = SceneEntityCfg("rob
     return torch.sum(err * weights, dim=1)
 
 
-def ulc_feet_air_time(env, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+def ulc_feet_air_time(
+    env,
+    command_name: str,
+    sensor_cfg: SceneEntityCfg,
+    max_air_time: float = 0.4,
+    command_threshold: float = 0.1,
+) -> torch.Tensor:
     sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-    return torch.sum(torch.clip(sensor.data.last_air_time[:, sensor_cfg.body_ids], max=0.4), dim=1)
+    air_time = sensor.data.current_air_time[:, sensor_cfg.body_ids]
+    contact_time = sensor.data.current_contact_time[:, sensor_cfg.body_ids]
+    in_contact = contact_time > 0.0
+    in_mode_time = torch.where(in_contact, contact_time, air_time)
+    single_stance = torch.sum(in_contact.int(), dim=1) == 1
+    reward = torch.min(torch.where(single_stance.unsqueeze(-1), in_mode_time, 0.0), dim=1)[0]
+    reward = torch.clamp(reward, max=max_air_time)
+    reward *= (torch.norm(_command(env, command_name)[:, :2], dim=1) > command_threshold).float()
+    return reward
 
 
 def ulc_feet_force(env, threshold: float, sensor_cfg: SceneEntityCfg, max_excess_force: float = 400.0) -> torch.Tensor:
     sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     forces = torch.abs(sensor.data.net_forces_w_history[:, :, sensor_cfg.body_ids, 2]).max(dim=1)[0]
     return torch.sum(torch.clamp(forces - threshold, min=0.0, max=max_excess_force), dim=1)
+
+
+def ulc_feet_stumble(env, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    forces_z = torch.abs(sensor.data.net_forces_w[:, sensor_cfg.body_ids, 2])
+    forces_xy = torch.linalg.norm(sensor.data.net_forces_w[:, sensor_cfg.body_ids, :2], dim=2)
+    return torch.sum((forces_xy > 5.0 * forces_z).float(), dim=1)
 
 
 def ulc_flying(env, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
