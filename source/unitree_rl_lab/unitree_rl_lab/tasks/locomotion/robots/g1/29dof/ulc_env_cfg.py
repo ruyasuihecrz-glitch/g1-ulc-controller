@@ -10,6 +10,7 @@ from isaaclab.utils import configclass
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 from unitree_rl_lab.tasks.locomotion import mdp
+from unitree_rl_lab.assets.robots.unitree import UNITREE_G1_29DOF_MIMIC_CFG
 from . import velocity_env_cfg as official_velocity
 
 
@@ -222,6 +223,9 @@ class ULCRobotEnvCfg(official_velocity.RobotEnvCfg):
 
     def __post_init__(self):
         super().__post_init__()
+        self.scene.robot = UNITREE_G1_29DOF_MIMIC_CFG.replace(
+            prim_path="{ENV_REGEX_NS}/Robot"
+        )
         self.scene.num_envs = 8192
         self.episode_length_s = 20.0
 
