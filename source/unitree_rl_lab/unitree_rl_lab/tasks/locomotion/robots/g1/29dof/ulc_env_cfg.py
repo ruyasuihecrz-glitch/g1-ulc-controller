@@ -170,6 +170,10 @@ class ULCRewardsCfg:
 class ULCEventsCfg(official_velocity.EventCfg):
     """ULC domain randomization."""
 
+    # ULC paper does not specify locomotion-style random base velocity pushes.
+    # Disable the inherited velocity_env_cfg push_robot during staged curriculum training.
+    push_robot = None
+
     physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
